@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>clown energy</title>
+        <meta name="author" content="">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src='https://unpkg.com/shiki'></script>
+        <script type="text/javascript" src="https://unpkg.com/unique-names-generator@4.4.0/dist/index.umd.js"></script>
+        <style>
+         body {
+             margin: 0px;
+             padding: 0px;
+             display: flex;
+             flex-direction: column;
+             height: 100vh;
+             background-color: teal;
+         }
+         #header {
+             display: flex;
+             margin: 0;
+             padding: 0;
+             /* height: 10%; */
+             background-color: #FFE900;
+         }
+         #foes-container {
+             display: flex;
+         }
+         .animal {
+             margin-right: 20px;
+         }
+         .foe {
+             color: #FF48B0;
+         }
+         .you {
+             color: #FF7477;
+         }
+         #content {
+             display: flex;
+             height: 100%;
+             overflow: hidden;
+         }
+         #code-container {
+             display: flex;
+             flex-direction: column;
+             width: 50%;
+             background-color: tomato;
+         }
+         #code {
+             /* position: relative; */
+             width: 100%;
+             height: 100%;
+             /* background-color: #2e3440ff */
+             background-color: teal;
+             overflow: hidden;
+         }
+         #code-input {
+             /* top: 0;
+                left: 0;
+                position: absolute; */
+             width: 100%;
+             height: 100%;
+             resize: none;
+             border: none;
+             outline: none;
+             z-index: 1;
+             overflow: hidden;
+             /* word-wrap: break-word; */
+             /* color: transparent; */
+             color: white;
+             caret-color: white;
+             background-color: transparent;
+             font-family: monospace;
+             /* white-space: pre; */
+         }
+         #code-input::placeholder {
+             color: white;
+         }
+         #code-output {
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             position: absolute;
+             word-wrap: break-word;
+             border: cyan 1px solid;
+         }
+         pre.shiki {
+             margin: 0;
+             padding: 0;
+         }
+         #send-button {
+             text-align: center;
+             background-color: #44D62C;
+             user-select: none;
+             padding: 20px;
+             color: #435060;
+             letter-spacing: 10px;
+         }
+         #send-button:hover {
+             background-color: #67B346;
+         }
+
+         #messages-container {
+             display: flex;
+             flex-direction: column;
+             width:50%;
+             background-color: #5EC8E5;
+             overflow-y: auto;
+             overflow-x: hidden;
+         }
+         .message-line {
+             display: flex;
+             padding: 5px;
+             width: 75%;
+         }
+         .message-container {
+             display: flex;
+             flex-direction: column;
+             border-radius: 10px;
+             padding: 5px 15px 5px 15px;
+             width: 100%;
+         }
+         .line-from-foe {
+             align-self: flex-start;
+         }
+         .line-from-me {
+             align-self: flex-end;
+         }
+         .from-foe {
+             background-color: #FF48B0;
+             color: white;
+         }
+         .from-me {
+             background-color: #0074A2;
+             color: #5EC8E5;
+         }
+         .message-sender {
+             font-weight: bold;
+         }
+         .message {
+             font-family: monospace;
+             color: white;
+             white-space: pre-wrap;
+             overflow-wrap: anywhere;
+         }
+        </style>
+    </head>
+    <body>
+        <div id='header'>
+            <div id='foes-container'></div>
+        </div>
+        <div id='content'>
+            <div id='messages-container'></div>
+            <div id='code-container'>
+                <div id='code'>
+                    <!-- <output id="code-output" role="status"></output> -->
+                    <textarea
+                        id='code-input'
+                        placeholder='write some javascript and send (SHIFT+ENTER)...'
+                        spellcheck='false'
+                    ></textarea>
+                </div>
+                <div id='send-button'>
+                    send
+                </div>
+            </div>
+        </div>
+        
+        <script type='text/javascript'>
+         alert('WARNING: only come here with people you trust....anyone in this chat room can execute ARBITRARY javascript in your browser....youve been warned.')
+         
+         // config
+         const port = 8081
+
+         // state
+         let state = {
+             foes: [],
+             messages: [],
+         }
+
+         /* shiki
+          *     .getHighlighter({
+          *         theme: 'nord'
+          *     })
+          *     .then(highlighter => {
+          *         document.getElementById('code-input').addEventListener('keyup', e => {
+          *             const code = highlighter.codeToHtml(e.target.value, 'js')
+          *             document.getElementById('code-output').innerHTML = code  
+          *         })
+          *     }) */
+ 
+         // get name generator stuff
+         const { uniqueNamesGenerator: generateName, colors, adjectives, animals } = window.uniqueNamesGenerator
+
+         // what room is this?
+         const defaultRoomName = generateName({
+             dictionaries: [animals, animals],
+             length: 2,
+             separator: '-',
+         })
+         const firstParam = location.pathname.split('/').filter(t => t !== '')[0] || ''
+         const roomName = firstParam !== '' ? firstParam : defaultRoomName
+         window.history.replaceState('', '', `${location.origin}/${roomName}`)
+
+         // give us your name
+         const defaultName = generateName({
+             dictionaries: [colors, adjectives],
+             length: 2,
+             separator: ' ',
+             style: 'capital',
+         })
+         const name = prompt('what are you named?', defaultName) || defaultName
+
+         const updateFoes = () => {
+             document.getElementById('foes-container').innerHTML =
+                 `<div class='you animal'>${name}</div>\n` +
+                 state.foes.map(f =>
+                     `<div id="foe-${f.split(' ').join('-')}" class="foe animal">${f}</div>`
+                 ).join('\n')
+         }
+
+         updateFoes()
+
+         let sendMessage = null
+         const ws = new WebSocket(`ws://${location.hostname}:${port}/ws/${name}/${roomName}`)
+         ws.onopen = e => {
+             // register sending.
+             sendMessage = msg => {
+                 ws.send(JSON.stringify({
+                     type: 'message',
+                     data: {
+                         sender: name,
+                         message: msg,
+                     },
+                 }))                 
+             }
+             const sendMsg = () => {
+                 const code = document.getElementById('code-input').value
+                 document.getElementById('code-input').value = ''
+                 if (code.trim() === '') return
+                 
+                 sendMessage(code)
+             }
+             
+             document.getElementById('send-button').addEventListener('click', e => sendMsg())
+             document.getElementById('code-input').addEventListener('keydown', e => {
+                 if (e.key === 'Enter' && e.shiftKey) {
+                     sendMsg()
+                     e.preventDefault()
+                 }
+             })
+         }
+         ws.onmessage = m => {
+             const updateMessages = msg => {
+                 // add new message to messages,
+                 state.messages.push(msg)
+
+                 const { sender, message } = msg
+                 
+                 // create new message element
+                 const msgEl = document.createElement('div')
+                 msgEl.className = `message-line ${sender === name ? 'line-from-me' : 'line-from-foe'}`
+                 msgEl.innerHTML = `<div class='${sender === name ? 'from-me' : 'from-foe'} message-container'><div class='message-sender'>${sender}</div><div class='message'>${message}</div></div>`
+                 
+                 document.getElementById('messages-container').prepend(msgEl)
+
+                 // eval arbitrary code.
+                 if (sender !== name)
+                     try { eval(message) } catch(e) {}
+             }
+
+             const msg = JSON.parse(m.data)
+             switch (msg.type) {
+                 case 'allFoes':
+                     state.foes = msg.data
+                     updateFoes()
+                     break
+                 case 'foeLeft':
+                     const idx = state.foes.indexOf(msg.data)
+                     if (idx !== -1) state.foes.splice(idx, 1)
+                     updateFoes()
+                     break
+                 case 'foeJoined':
+                     state.foes.push(msg.data)
+                     updateFoes()
+                     break
+                 case 'message':
+                     updateMessages(msg.data)
+                     break
+                 default:
+                     console.log('??')
+             }
+         }
+        </script>
+    </body>
+</html>
+
+
+
+
+
+
+
+
+
+
