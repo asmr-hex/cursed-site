@@ -1,5 +1,5 @@
 {
-  "name": "clown-energy",
+  "name": "cursed-site",
   "version": "1.0.0",
   "description": "some shit",
   "main": "index.js",
@@ -9,7 +9,7 @@
     "start-server": "poetry run uvicorn main:app --reload --port 8081",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
+  "author": "asmr.hex",
   "license": "ISC",
   "devDependencies": {
     "concurrently": "^6.0.0",
